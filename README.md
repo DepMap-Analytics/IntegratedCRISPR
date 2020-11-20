@@ -38,3 +38,4 @@ tidyverse
 dplyr
 MASS
 sn
+beeswarm
