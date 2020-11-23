@@ -62,14 +62,6 @@ dev.off()
 
 
 
-###Figure 5b - recall of essential genes###
-CEbroad<-read.csv(paste0(dir.Input,"/priorcommonessentials.csv"),header=T,stringsAsFactors = F)
-CEbroad<-apply(CEbroad,1,function(x) strsplit(x," ",fixed=TRUE)[[1]][1])
-CEbroad<-intersect(rownames(BinaryCCR3),CEbroad)
-NCEbroad<-read.csv(paste0(dir.Input,"/priornonessentials.csv"),header=T,stringsAsFactors = F)
-NCEbroad<-apply(NCEbroad,1,function(x) strsplit(x," ",fixed=TRUE)[[1]][1])
-NCEbroad<-intersect(rownames(BinaryCCR3),NCEbroad)
-
 ###use Broad 90th depletion method ###
 load(paste0(dir.MergeFile,"/BroadDataCERES.Rdata"))
 load(paste0(dir.MergeFile,"/SangerDataCERES.Rdata"))
