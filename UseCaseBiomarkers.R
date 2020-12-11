@@ -9,7 +9,7 @@ source("BiomarkerFunctions.R")
 
 dir.MergeFile<-"./Results"
 dir.Results<-"./ResultsFilter"
-#dir.Input<-"/path/to/downloaded/figshare/"
+dir.Input<-"/path/to/downloaded/figshare/"
 
 load(paste0(dir.Input,"/InstituteColours.Rdata"))
 load(paste0(dir.Input,"/PipelineColours.Rdata"))
@@ -186,7 +186,13 @@ write.table(AnovaResPC2tr[[3]][AnovaResPC2tr[[3]]$fdr<0.05,],file=paste0(dir.Res
 
 
 ResListT<-list(ComBat=AnovaResCTtr,ComBatQN=AnovaResQNtr,ComBatPC1=AnovaResPC1tr,ComBatPC2=AnovaResPC2tr)
-plotBMres(ResListT,curveColours,fdr=0.05,plotName="tissue")
+plotBMres(ResListT,curveColours,fdr=0.05,plotName="tissue",CFEtype="All")
+
+plotBMres(ResListT,curveColours,fdr=0.05,plotName="tissue_mutation",CFEtype="_mut")
+
+plotBMres(ResListT,curveColours,fdr=0.05,plotName="tissue_hypMet",CFEtype="_HypMET")
+
+plotBMres(ResListT,curveColours,fdr=0.05,plotName="tissue_CNA",CFEtype="CNA")
 cfelistT<-plotBMresByCFE(ResListT,curveColours,fdr=0.05)
 AnovaFDRcurve(ResListT,plotcolours = PipelineColours,plotName="tissue")
 AnovaFDRcurve(ResListT,plotcolours = PipelineColours,noCFE=TRUE,plotName="tissue")
