@@ -211,7 +211,7 @@ dev.off()
 load(paste0(dir.Input,"/CCLEexpression.RData"))
 allMap<-getAllMap(allSymbol,rownames(CCLEexpression))
 CCLEexpression<-updateRownames(CCLEexpression,allMap)  
-NotExpr<-ADAM2.PercentileCF(1/CCLEexpression,display=FALSE)$cfgenes
+NotExpr<-ADAM2.PercentileCF(-1*CCLEexpression,display=FALSE)$cfgenes
 NotExpr<-as.matrix(NotExpr,ncol=1)
 rownames(NotExpr)<-NotExpr
 allMap<-getAllMap(allSymbol,NotExpr[,1])
