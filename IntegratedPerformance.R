@@ -2,7 +2,7 @@ library(here)
 library(CRISPRcleanR)
 library(ggplot2)
 library(beeswarm)
-
+library(qusage)
 
 dir.MergeFile<-"./Results"
 dir.Results<-"./ResultsFilter"
@@ -18,6 +18,9 @@ cmp<-read.csv(paste0(dir.Input,"/model_list_latest.csv"),header=T,stringsAsFacto
 cmp2<-cmp
 cmp2$model_id<-cmp2$BROAD_ID
 cmp<-rbind(cmp,cmp2)
+
+load(file=paste0(dir.MergeFile,"/AllSymbolsHNGCmap.Rdata"))
+
 #start with the SQ+ComBat+PC1 merged all data
 
 CCR_corrected<-readRDS(file=paste0(dir.MergeFile,"/CCR_SQ_Combat_PC1_All_merge_F.Rds"))
@@ -103,12 +106,37 @@ load(file=paste0(dir.Results,"/normLRTCERESmerge",PCnumber,".RData"))
 load(file=paste0(dir.Results,"/normLRTCCRJmerge",PCnumber,".Rdata"))
 
 
-load(paste0(dir.Input,'/EssGenes.DNA_REPLICATION_cons.RData'))
-load(paste0(dir.Input,'EssGenes.KEGG_rna_polymerase.RData'))
-load(paste0(dir.Input,'EssGenes.PROTEASOME_cons.RData'))
-load(paste0(dir.Input,'EssGenes.ribosomalProteins.RData'))
-load(paste0(dir.Input,'EssGenes.SPLICEOSOME_cons.RData'))
+load(file=paste0(dir.Input,"/Kegg.DNArep.Rdata"))
+load(file=paste0(dir.Input,"/Kegg.Ribosome.Rdata"))
+load(file=paste0(dir.Input,"/Kegg.Proteasome.Rdata"))
+load(file=paste0(dir.Input,"/Kegg.Spliceosome.Rdata"))
+load(file=paste0(dir.Input,"/Kegg.RNApoly.Rdata"))
+load(file=paste0(dir.Input,"/Histones.Rdata"))
 
+allRefEss<-unique(c(Kegg.DNArep,Kegg.Proteasome,Kegg.Ribosome,Kegg.RNApoly,Kegg.Spliceosome,Histones))
+allRefEss<-unique(allSymbol[na.omit(match(allRefEss,allSymbol$Input)),"Approved.symbol"])
+getAllMap<-function(allSymbol,allgenes){
+  symbolS1<-allSymbol[allSymbol$Match.type=="Approved symbol",]
+  symbolS2<-allSymbol[allSymbol$Match.type=="Previous symbol",]
+  symbolS3<-allSymbol[allSymbol$Match.type=="Synonyms",]
+  allMap<-symbolS1[match(allgenes,symbolS1$Input),"Approved.symbol"]
+  names(allMap)<-allgenes
+  m1<-names(allMap)[is.na(allMap)]
+  m1M<-symbolS2[match(m1,symbolS2$Input),"Approved.symbol"]
+  names(m1M)<-m1
+  m2<-names(m1M)[is.na(m1M)]
+  m2M<-symbolS3[match(m2,symbolS3$Input),"Approved.symbol"]
+  names(m2M)<-m2
+  
+  allMap[names(m1M)]<-m1M
+  allMap[names(m2M)]<-m2M
+  
+  
+  allMap[is.na(allMap)]<-names(allMap)[is.na(allMap)]
+  return(allMap)
+}
+
+                       
 #PanCancerCoreFitnessGenes, Behan 2019:
 load(paste0(dir.Input,'/10_PANCANCER_coreFitness_genes.RData'))
 Behan<-PanCancerCoreFitnessGenes
@@ -116,24 +144,7 @@ Behan<-PanCancerCoreFitnessGenes
 load(paste0(dir.Input,'/BAGEL_v2_ESSENTIAL_GENES.Rdata'))
 
 
-Recall_BehanD9<-length(intersect(EssGenes.DNA_REPLICATION_cons,Behan))/length(EssGenes.DNA_REPLICATION_cons)
-Recall_HartD9<-length(intersect(EssGenes.DNA_REPLICATION_cons,BAGEL_essential))/length(EssGenes.DNA_REPLICATION_cons)
-
-
-Recall_BehanK9<-length(intersect(EssGenes.KEGG_rna_polymerase,Behan))/length(EssGenes.KEGG_rna_polymerase)
-Recall_HartK9<-length(intersect(EssGenes.KEGG_rna_polymerase,BAGEL_essential))/length(EssGenes.KEGG_rna_polymerase)
-
-
-Recall_BehanP9<-length(intersect(EssGenes.PROTEASOME_cons,Behan))/length(EssGenes.PROTEASOME_cons)
-Recall_HartP9<-length(intersect(EssGenes.PROTEASOME_cons,BAGEL_essential))/length(EssGenes.PROTEASOME_cons)
-
-Recall_BehanR9<-length(intersect(EssGenes.ribosomalProteins,Behan))/length(EssGenes.ribosomalProteins)
-Recall_HartR9<-length(intersect(EssGenes.ribosomalProteins,BAGEL_essential))/length(EssGenes.ribosomalProteins)
-
-Recall_BehanS9<-length(intersect(EssGenes.SPLICEOSOME_cons,Behan))/length(EssGenes.SPLICEOSOME_cons)
-Recall_HartS9<-length(intersect(EssGenes.SPLICEOSOME_cons,BAGEL_essential))/length(EssGenes.SPLICEOSOME_cons)
-
-#option 2 for common essentials, just use CERES:
+#CERES common essentials:
 allCEsC<-unique(c(CeresCE,PCcoreCERES))
 
 CEmatrixC<-matrix(0,nrow=length(allCEsC),ncol=2)
@@ -161,110 +172,72 @@ Tier1<-as.character(TierCEC[which(TierCEC$tier=="Tier1"),1])
 #Tier1<-as.character(TierCE[,1])
 Tier2<-as.character(TierCEC[which(TierCEC$tier=="Tier1"|TierCEC$tier=="Tier2"),1])
 
-Recall_IntCeresD9c<-length(intersect(EssGenes.DNA_REPLICATION_cons,Tier1))/length(EssGenes.DNA_REPLICATION_cons)
-Recall_IntCeresD9t2c<-length(intersect(EssGenes.DNA_REPLICATION_cons,Tier2))/length(EssGenes.DNA_REPLICATION_cons)
+allMap<-getAllMap(allSymbol = allSymbol,allgenes)
+BehanM<-as.matrix(Behan,ncol=1)
+rownames(BehanM)<-Behan
+Behan<-names(updateRownames(BehanM,allMap))
+Bagel<-as.matrix(BAGEL_essential,ncol=1)
+rownames(Bagel)<-BAGEL_essential
+BAGELessential<-names(updateRownames(Bagel,allMap))
 
 
-Recall_IntCeresDc<-length(intersect(EssGenes.DNA_REPLICATION_cons,Tier1))/length(EssGenes.DNA_REPLICATION_cons)
-Recall_IntCeresDt2c<-length(intersect(EssGenes.DNA_REPLICATION_cons,Tier2))/length(EssGenes.DNA_REPLICATION_cons)
+RecallSpliceosome<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Kegg.Spliceosome))/length(Kegg.Spliceosome))
+RecallRibosome<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Kegg.Ribosome))/length(Kegg.Ribosome))
+RecallProteasome<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Kegg.Proteasome))/length(Kegg.Proteasome))
+RecallRNApoly<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Kegg.RNApoly))/length(Kegg.RNApoly))
+RecallDNARep<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Kegg.DNArep))/length(Kegg.DNArep))
+RecallHistones<-lapply(list(Behan=Behan,Hart=BAGELessential,Broad=BroadCE,Sanger=SangerCE,Int=Tier2),function(x) length(intersect(x,Histones))/length(Histones))
 
+RecallDataC<-rbind(data.frame(deps=unlist(RecallSpliceosome),set="Spliceosome",data=unlist(names(RecallSpliceosome))),
+                   data.frame(deps=unlist(RecallRibosome),set="Ribosome",data=unlist(names(RecallRibosome))),
+                   data.frame(deps=unlist(RecallProteasome),set="Proteasome",data=unlist(names(RecallProteasome))),
+                   data.frame(deps=unlist(RecallRNApoly),set="RNA polymerase",data=unlist(names(RecallRNApoly))),
+                   data.frame(deps=unlist(RecallDNARep),set="DNA Replication",data=unlist(names(RecallDNARep))),
+                   data.frame(deps=unlist(RecallHistones),set="Histones",data=unlist(names(RecallHistones)))
+                   )
 
-Recall_IntCeresK9c<-length(intersect(EssGenes.KEGG_rna_polymerase,Tier1))/length(EssGenes.KEGG_rna_polymerase)
-Recall_IntCeresK9t2c<-length(intersect(EssGenes.KEGG_rna_polymerase,Tier2))/length(EssGenes.KEGG_rna_polymerase)
+RecallDataC$data<-factor(RecallDataC$data,levels=c("Int","Broad","Sanger","Behan","Hart"))
+Pcolours<-c("blue","orange","lightblue","pink","purple")
+names(Pcolours)<-c("Int","Broad","Sanger","Behan","Hart")
+RecallDataC$set<-factor(RecallDataC$set,levels=c("Proteasome","Ribosome","RNA polymerase","DNA Replication","Spliceosome","Histones"))
+Recallplot<-ggplot(RecallDataC,aes(x=set,y=deps,fill=data))+geom_bar(stat="identity",position="dodge")+scale_fill_manual(values=Pcolours)+theme(axis.text.x=element_text(angle=45))+ylab("Recall")+xlab("")+theme_bw()+theme(legend.position = c(0.25,0.925),legend.background = element_blank(),legend.title=element_blank(),panel.border = element_blank(), panel.grid.major = element_blank(),
+                                                                                                                                                                                                                                                                                                                                      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
-Recall_IntCeresP9c<-length(intersect(EssGenes.PROTEASOME_cons,Tier1))/length(EssGenes.PROTEASOME_cons)
-Recall_IntCeresP9t2c<-length(intersect(EssGenes.PROTEASOME_cons,Tier2))/length(EssGenes.PROTEASOME_cons)
-
-Recall_IntCeresR9c<-length(intersect(EssGenes.ribosomalProteins,Tier1))/length(EssGenes.ribosomalProteins)
-Recall_IntCeresR9t2c<-length(intersect(EssGenes.ribosomalProteins,Tier2))/length(EssGenes.ribosomalProteins)
-
-
-Recall_IntCeresS9c<-length(intersect(EssGenes.SPLICEOSOME_cons,Tier1))/length(EssGenes.SPLICEOSOME_cons)
-Recall_IntCeresS9t2c<-length(intersect(EssGenes.SPLICEOSOME_cons,Tier2))/length(EssGenes.SPLICEOSOME_cons)
-
-RecallDataC<-rbind(data.frame(deps=Recall_BehanS9,set="Spliceosome",data="Behan"),
-                   data.frame(deps=Recall_HartS9,set="Spliceosome",data="Hart"),
-                   data.frame(deps=Recall_IntCeresS9c,set="Spliceosome",data="Integrated Tier 1"),
-                   data.frame(deps=Recall_IntCeresS9t2c,set="Spliceosome",data="Integrated Tier 2"),
-                   
-                   data.frame(deps=Recall_BehanR9,set="Ribosomal",data="Behan"),
-                   data.frame(deps=Recall_HartR9,set="Ribosomal",data="Hart"),
-                   data.frame(deps=Recall_IntCeresR9c,set="Ribosomal",data="Integrated Tier 1"),
-                   data.frame(deps=Recall_IntCeresR9t2c,set="Ribosomal",data="Integrated Tier 2"),
-                   
-                   data.frame(deps=Recall_BehanP9,set="Proteasome",data="Behan"),
-                   data.frame(deps=Recall_HartP9,set="Proteasome",data="Hart"),
-                   data.frame(deps=Recall_IntCeresP9c,set="Proteasome",data="Integrated Tier 1"),
-                   data.frame(deps=Recall_IntCeresP9t2c,set="Proteasome",data="Integrated Tier 2"),
-                   
-                   data.frame(deps=Recall_BehanK9,set="RNA_polymerase",data="Behan"),
-                   data.frame(deps=Recall_HartK9,set="RNA_polymerase",data="Hart"),
-                   data.frame(deps=Recall_IntCeresK9c,set="RNA_polymerase",data="Integrated Tier 1"),
-                   data.frame(deps=Recall_IntCeresK9t2c,set="RNA_polymerase",data="Integrated Tier 2"),
-                   
-                   data.frame(deps=Recall_BehanD9,set="DNA_Replication",data="Behan"),
-                   data.frame(deps=Recall_HartD9,set="DNA_Replication",data="Hart"),
-                   data.frame(deps=Recall_IntCeresD9c,set="DNA_Replication",data="Integrated Tier 1"),
-                   data.frame(deps=Recall_IntCeresD9t2c,set="DNA_Replication",data="Integrated Tier 2"))
-
-
-RecallDataC$data<-factor(RecallDataC$data,levels=c("Integrated Tier 1","Integrated Tier 2","Behan","Hart"))
-Pcolours<-c("red","blue","pink","purple")
-names(Pcolours)<-c("Integrated Tier 1","Integrated Tier 2","Behan","Hart")
-RecallDataC$set<-factor(RecallDataC$set,levels=c("Proteasome","Ribosomal","RNA_polymerase","DNA_Replication","Spliceosome"))
-Recallplot<-ggplot(RecallDataC,aes(x=set,y=deps,fill=data))+geom_bar(stat="identity",position="dodge")+scale_fill_manual(values=Pcolours)+theme(axis.text.x=element_text(angle=45))+ylab("Number Genes")+xlab("")+theme_bw()+theme(legend.position = c(0.25,0.925),legend.background = element_blank(),legend.title=element_blank())
-
-pdf(paste0(dir.Results,"/RecallKnownSets_IntegratedFig5_ConsensusVScurrent_CERES_PC1.pdf"))
+pdf(paste0(dir.Results,"/RecallKnownSets_IntegratedFig5_ConsensusVScurrent_CERES_PC1_All.pdf"))
 print(Recallplot)
 dev.off()
 
+                       #load gene expression data to get negative controls
+load(paste0(dir.Input,"/CCLEexpression.RData"))
+allMap<-getAllMap(allSymbol,rownames(CCLEexpression))
+CCLEexpression<-updateRownames(CCLEexpression,allMap)  
+NotExpr<-ADAM2.PercentileCF(1/CCLEexpression,display=FALSE)$cfgenes
+NotExpr<-as.matrix(NotExpr,ncol=1)
+rownames(NotExpr)<-NotExpr
+allMap<-getAllMap(allSymbol,NotExpr[,1])
+NotExpr<-names(updateRownames(NotExpr,allMap))
+NotExpr<-setdiff(NotExpr,allRefEss)
 
-###load and run the normLRT recall of DEMETER genes to assess false positives.
-ssc<-read.csv(file=paste0(dir.Input,"/skewed_tdist.csv"),header=T,stringsAsFactors = F)
-SSC20<-ssc[ssc[,2]>=20,1]
-SSC50<-ssc[ssc[,2]>=50,1]
-SSC100<-ssc[ssc[,2]>=100,1]
-SSC200<-ssc[ssc[,2]>=200,1]
+FDR_NotExpr<-c(
+  length(intersect(NotExpr,Tier2))/length(Tier2),
+  length(intersect(NotExpr,Behan))/length(Behan),
+  length(intersect(NotExpr,BAGELessential))/length(BAGELessential),
+  length(intersect(NotExpr,BroadCE))/length(BroadCE),
+  length(intersect(NotExpr,SangerCE))/length(SangerCE))
+FDRdata<-data.frame(FDR=FDR_NotExpr,Set=c("Int","Behan","Hart","Broad","Sanger"))
+FDRdata$Set<-factor(FDRdata$Set,levels=c("Hart","Int","Broad","Behan","Sanger"))
+Pcolours<-c("red","blue","orange","lightblue","pink","purple")
+names(Pcolours)<-c("Tier1","Int","Broad","Sanger","Behan","Hart")
+FDRplot<-ggplot(FDRdata,aes(x=Set,y=FDR,fill=Set))+geom_bar(stat="identity",position="dodge")+scale_fill_manual(values=Pcolours)+theme(axis.text.x=element_text(angle=45))+ylab("Estimated FDR")+xlab("")+theme_bw()+theme(legend.position = c(0.25,0.925),legend.background = element_blank(),legend.title=element_blank())
 
-FDR_SC20<-c(length(intersect(SSC20,Tier1))/length(Tier1),
-            length(intersect(SSC20,Tier2))/length(Tier2),
-            length(intersect(SSC20,Behan))/length(Behan),
-            length(intersect(SSC20,BAGEL_essential))/length(BAGEL_essential))
-FDR_SC50<-c(length(intersect(SSC50,Tier1))/length(Tier1),
-            length(intersect(SSC50,Tier2))/length(Tier2),
-            length(intersect(SSC50,Behan))/length(Behan),
-            length(intersect(SSC50,BAGEL_essential))/length(BAGEL_essential))
-FDR_SC100<-c(length(intersect(SSC100,Tier1))/length(Tier1),
-             length(intersect(SSC100,Tier2))/length(Tier2),
-             length(intersect(SSC100,Behan))/length(Behan),
-             length(intersect(SSC100,BAGEL_essential))/length(BAGEL_essential))
-FDR_SC200<-c(length(intersect(SSC200,Tier1))/length(Tier1),
-             length(intersect(SSC200,Tier2))/length(Tier2),
-             length(intersect(SSC200,Behan))/length(Behan),
-             length(intersect(SSC200,BAGEL_essential))/length(BAGEL_essential))
-FDRs<-rbind(FDR_SC20,FDR_SC50,FDR_SC100,FDR_SC200)
-pdf(paste0(dir.Results,"/skewLRT_demeter_Tier_CERES+PC1.pdf"))
-barplot(t(FDRs),beside = TRUE,col=Pcolours,border=FALSE,ylab='Estimated FDR',xlab = 'Log-likelihood of skew-t distribution',names.arg = c(20,50,100,200))
+
+pdf(paste0(dir.Results,"/FDR_IntegratedFig5_CERES_PC1_notExpr.pdf"))
+print(FDRplot)
 dev.off()
 
-allPriorSets<-c(EssGenes.DNA_REPLICATION_cons,EssGenes.KEGG_rna_polymerase,EssGenes.PROTEASOME_cons,EssGenes.ribosomalProteins,EssGenes.SPLICEOSOME_cons)
-allPriorSets<-unique(allPriorSets)
-
-PrecisionT1<-length(intersect(Tier1,allPriorSets))/length(Tier1)
-PrecisionT2<-length(intersect(Tier2,allPriorSets))/length(Tier2)
-PrecisionBehan<-length(intersect(Behan,allPriorSets))/length(Behan)
-PrecisionHart<-length(intersect(BAGEL_essential,allPriorSets))/length(BAGEL_essential)
-
-PrecisionData<-data.frame(c("Tier1"=PrecisionT1,"Tier2"=PrecisionT2,"Behan"=PrecisionBehan,"Hart"=PrecisionHart))
-PrecisionData$set<-rownames(PrecisionData)
-colnames(PrecisionData)<-c("Precision","Set")
-Pcolours<-c("red","blue","pink","purple")
-names(Pcolours)<-c("Tier1","Tier2","Behan","Hart")
-Precisionplot<-ggplot(PrecisionData,aes(x=Set,y=Precision,fill=Set))+geom_bar(stat="identity",position="dodge")+scale_fill_manual(values=Pcolours)+theme(axis.text.x=element_text(angle=45))+ylab("Precision")+xlab("")+theme_bw()+theme(legend.position = c(0.25,0.925),legend.background = element_blank(),legend.title=element_blank())
-
-pdf(paste0(dir.Results,"/PrecisionKnownSets_IntegratedFig5_CERES_PC1.pdf"))
-print(Precisionplot)
-dev.off()
+                       
+                       
+###Comparison of biomarker analysis###                       
 
 load(paste0(dir.Input,'/MoBEM.RData'))
 
@@ -272,7 +245,13 @@ load(paste0(dir.Input,'/MoBEM.RData'))
 
 CCR_sanger<-SangerData
 CCR_broad<-BroadData
+dn<-dimnames(CCR_sanger)
+CCR_sanger<-normalize.quantiles(CCR_sanger)
+dimnames(CCR_sanger)<-dn
 
+dn<-dimnames(CCR_broad)
+CCR_broad<-normalize.quantiles(CCR_broad)
+dimnames(CCR_broad)<-dn
 #load the relevant Binary matrices and show how many more genes are depleted at least once in integrated versus
 #individual data sets
 
@@ -301,8 +280,7 @@ CCR_allCosmic<-CCR_corrected
 
 colnames(CCR_allCosmic)<-cmp[match(colnames(CCR_allCosmic),cmp$model_id),"COSMIC_ID"]
 
-CCRint_Broad<-CCR_corrected[,grep("ACH",colnames(CCR_corrected))]
-CCRint_Sanger<-CCR_corrected[,grep("SIDM",colnames(CCR_corrected))]
+
 #filter by highest normLRT genes
 
 n1<-names(normLRTCCR1[[3]])[normLRTCCR1[[3]]>200]
@@ -471,9 +449,9 @@ length(Newboth)
 pdf(paste0(dir.Results,"/ExampleNewBiomarkersPC1.pdf"),width=6.5,height=2.25)
 par(mfrow=c(1,4))
 par(mar=c(0.3,2,0.5,0.1)+0.1,mgp=c(1.25,0.5,0))
-plotAssociationExamplesCP(CCR_sanger,CCR_allCosmic,16,MoBEM,cmp,SangerNew)
+plotAssociationExamplesCP(CCR_sanger,CCR_allCosmic,20,MoBEM,cmp,SangerNew)
 
-plotAssociationExamplesCP(CCR_broad,CCR_allCosmic,52,MoBEM,cmp,BroadNew)
+plotAssociationExamplesCP(CCR_broad,CCR_allCosmic,60,MoBEM,cmp,BroadNew)
 dev.off()
 
 ccrS[["Lung"]]["TP53_mut-MDM2-Lung",]
