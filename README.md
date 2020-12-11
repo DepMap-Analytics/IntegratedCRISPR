@@ -11,6 +11,7 @@ The code should be executed in the following order:
 * UseCaseLineageSubtypes.R
 * UseCaseBiomarkers.R
 * CalculateBinaryDepletions.R
+* CalcCommonEssentials.R
 * IntegratedPerformance.R
 * DownSamplingBatchCorrection.R
 * DownSamplingFigures.R
