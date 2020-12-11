@@ -1,4 +1,3 @@
-
 EssNonEss_plot<-function(DataMatrix,essgenes,nonessgenes,filename,fdr=0.05){
   if(is.list(DataMatrix)){
     DataVectors<-lapply(DataMatrix,function(x) as.vector(unlist(x)))
@@ -54,7 +53,7 @@ combatadj<-function(Data1,Data2,fdr=0.05,distmetric="Cor",subsetByQC=NULL,genese
   ingenes<-intersect(rownames(Data1),rownames(Data2))
   combinedData<-cbind(Data1[ingenes,],Data2[ingenes,])
   if(!is.null(subsetByQC)){
-    clnames<-strsplit(colnames(combinedData),'---')
+    clnames<-str_split(colnames(combinedData),'---')
     clnames<-unlist(lapply(clnames,function(x){x[1]}))
     
     uc<-unique(clnames)
@@ -99,7 +98,7 @@ combatadj<-function(Data1,Data2,fdr=0.05,distmetric="Cor",subsetByQC=NULL,genese
 
     stdData<-combinedData
   }
-  site<-strsplit(colnames(combinedData),'---')
+  site<-str_split(colnames(combinedData),'---')
   site<-unlist(site)
   site<-site[seq(2,length(site),2)]
   names(site)<-colnames(combinedData)
@@ -174,7 +173,7 @@ classPerfCP<-function(dataset,qualityTH=Inf,QC=NULL,weights=NULL,geneset=NULL,di
   }
   
   if(length(QC)>0){
-    clnames<-strsplit(colnames(dataset),'---')
+    clnames<-str_split(colnames(dataset),'---')
     clnames<-unlist(lapply(clnames,function(x){x[1]}))
     
     uc<-unique(clnames)
@@ -185,10 +184,10 @@ classPerfCP<-function(dataset,qualityTH=Inf,QC=NULL,weights=NULL,geneset=NULL,di
     dataset<-dataset[,QC>=qualityTH]
   }
   
-  clnames<-strsplit(colnames(dataset),'---')
+  clnames<-str_split(colnames(dataset),'---')
   clnames<-unlist(lapply(clnames,function(x){x[1]}))
   
-  site<-strsplit(colnames(dataset),'---')
+  site<-str_split(colnames(dataset),'---')
   site<-unlist(lapply(site,function(x){x[[2]]}))
   if(distmetric=="Cor"){
     cdist<-as.matrix(1-cor(dataset))
@@ -1154,7 +1153,31 @@ RemovePC<-function(data,droppcanumber=1,perfCheck=TRUE){
     return(correctedData)
   }
 }
+PCextract<-function(data,pcanumber=1){
+  if(sum(is.na(data))!=0){
+    #Have NAs and need to impute missing values
+    #data is genes x cell lines
+    meanVals<-rowMeans(data,na.rm=TRUE)
+    genesToimpute<-which(rowSums(is.na(data))!=0)
+    for(i in 1:length(genesToimpute)){
+      selcl<-which(is.na(data[genesToimpute[i],]))
+      data[genesToimpute[i],selcl]<-meanVals[genesToimpute[i]]
+    }
+  }
+  estpca<-prcomp(t(data),scale.=TRUE)
+  npcas<-1:ncol(data)
+  pcause<-npcas[npcas%in%pcanumber]
 
+ return(estpca$rotation[,pcause])
+  
+}
+PCvals<-function(inputdata,PCs){
+  PCout<-list()
+  for(i in 1:ncol(PCs)){
+    PCout[[i]]<-t(PCs[,i])%*%inputdata
+  }
+  return(PCout)
+}
 silhouetteScores<-function(clusterlabels,distmat){
   if(!is.numeric(clusterlabels)){
     clustercodes<-as.integer(1:length(unique(clusterlabels)))
@@ -1293,10 +1316,10 @@ classPerfFeature<-function(dataset,qualityTH=Inf,QC=NULL,weights=NULL,geneset=NU
 }
 
 distPlotCP<-function(dataset,title,XLIM,YLIMS,extraDist=NULL,weights=TRUE){
-  clnames<-strsplit(colnames(dataset),'---')
+  clnames<-str_split(colnames(dataset),'---')
   clnames<-unlist(lapply(clnames,function(x){x[1]}))
   
-  site<-strsplit(colnames(dataset),'---')
+  site<-str_split(colnames(dataset),'---')
   site<-unlist(lapply(site,function(x){x[[2]]}))
   
   
@@ -1316,10 +1339,10 @@ distPlotCP<-function(dataset,title,XLIM,YLIMS,extraDist=NULL,weights=TRUE){
   }
   if(!is.null(extraDist)){
     if(weights){
-      clnamese<-strsplit(colnames(extraDist),'---')
+      clnamese<-str_split(colnames(extraDist),'---')
       clnamese<-unlist(lapply(clnamese,function(x){x[1]}))
       
-      sitee<-strsplit(colnames(extraDist),'---')
+      sitee<-str_split(colnames(extraDist),'---')
       sitee<-unlist(lapply(sitee,function(x){x[2]}))
       
       
@@ -1419,7 +1442,7 @@ if(is.null(labels)){labels=names(Reslist)}
   #lines(1:npoints,100*1:npoints*1/npoints,col=makeTransparent('black',150))
   labels[1]<-paste(labels[1],percent(Res1[1]))
   for(i in 2:length(Reslist)){
-    lines(1:npoints,100*Reslist[[i]],col=collist[i],lwd=5,type='l',lty=ltylist[i])
+    lines(1:npoints,100*Reslist[[i]],col=collist[i],lwd=4,type='l',lty=ltylist[i])
     labels[i]<-paste(labels[i],percent(Reslist[[i]][1]))
   }
   
@@ -1440,12 +1463,11 @@ nAUClist<-lapply(Reslist,function(x) trapz(1:npoints,100*x)/(100*npoints))
     pdf(filename,width=3,height=3)
     par(mar=c(2.0,2.0,0.1,0.2)+0.1,mgp=c(1,0.25,0))
     if(is.null(xlim)){
-      plot(100*Reslist,frame.plot = FALSE,col=collist[1],lwd=5,type='l',
-         xlab='neighbourhood',ylab='% cell lines matching counterpart',cex=0.8,cex.axis=0.8,cex.lab=0.8)
-    }else{
+    plot(100*Reslist,frame.plot = FALSE,col=collist[1],lwd=5,type='l',
+         xlab='neighbourhood',ylab='% cell lines matching counterpart',cex=0.8,cex.axis=0.8,cex.lab=0.8)}else{
            plot(100*Reslist,frame.plot = FALSE,col=collist[1],lwd=5,type='l',xlim=xlim,
                 xlab='neighbourhood',ylab='% cell lines matching counterpart',cex=0.8,cex.axis=0.8,cex.lab=0.8)
-    }
+         }
     lines(1:npoints,100*1:npoints*1/npoints,col=makeTransparent('black',150))
     nauc<-trapz(1:npoints,100*Reslist)/(100*npoints)
     legend('bottomright',legend=paste(labels,
@@ -2011,11 +2033,11 @@ decodeCNA_cp<-function(MoBEM){
   rn <- rownames(MoBEM)
   ii <- grep("cna", rownames(MoBEM))
   cnaId <- rownames(MoBEM)[ii]
-  containedGenes <- unlist(lapply(strsplit(cnaId, " "), function(x) {
+  containedGenes <- unlist(lapply(str_split(cnaId, " "), function(x) {
     x[2]
   }))
   containedGenes[is.na(containedGenes)] <- ""
-  segments <- unlist(lapply(strsplit(unlist(lapply(strsplit(cnaId, 
+  segments <- unlist(lapply(str_split(unlist(lapply(str_split(cnaId, 
                                                               ":"), function(x) {
                                                                 x[2]
                                                               })), " "), function(x) {
@@ -2251,13 +2273,12 @@ avgOverlap<-function(data,overlapAnnot,divergentCL=NULL){
   
   for(i in 1:nrow(overlapAnnot)){
     subdata<-data[,colnames(data)%in%unlist(overlapAnnot[i,c("model_id","BROAD_ID")])]
-    print(i)
-    if(length(subdata)>nrow(data)){
+    
+    if(ncol(subdata)>1){
       newdata<-matrix(rowMeans(as.matrix(subdata)),ncol=1)
       colnames(newdata)<-overlapAnnot[i,"model_id"]
     }else{
-      newdata<-matrix(subdata,ncol=1)
-      colnames(newdata)<-overlapAnnot[i,"model_id"]
+      newdata<-subdata
     }
     
     if(i==1){
@@ -2313,7 +2334,10 @@ updateRownames<-function(inputdata,Map){
   newnames[is.na(newnames)]<-names(newnames)[is.na(newnames)]
   newnames<-newnames[newnames%in%names(table(newnames))[table(newnames)==1]]
   inputdata<-inputdata[names(newnames),]
-  rownames(inputdata)<-newnames
+  if(is.matrix(inputdata)){
+  rownames(inputdata)<-newnames}else{
+    names(inputdata)<-newnames
+  }
   return(inputdata)
 }
 
@@ -2408,13 +2432,14 @@ FindSignif<-function(inputset,integratedset,fdr=0.05){
   for(i in 1:length(tissues)){
     i1<-inputset[[tissues[i]]]
     i2<-integratedset[[tissues[i]]]
+    i1$fdr<-p.adjust(i1$p,method="fdr")
+    i2$fdr<-p.adjust(i2$p,method="fdr")
     bothtest<-intersect(rownames(i1),rownames(i2))
     #print(head(bothtest))
     corTest[[i]]<-cor.test(i1[bothtest,"delta"],i2[bothtest,"delta"])
     i1<-i1[bothtest,]
     i2<-i2[bothtest,]
-    i1$fdr<-p.adjust(i1$p,method="fdr")
-    i2$fdr<-p.adjust(i2$p,method="fdr")
+  
     
     signInt<-i2[i2$fdr<fdr&i1$fdr>fdr,]
     signInt$nposInd<-i1[i2$fdr<fdr&i1$fdr>fdr,"npos"]
@@ -2895,11 +2920,11 @@ fr<-function(testgenes,controlgenes){
   sum(controlgenes%in%testgenes)/length(controlgenes)
 }
 #https://github.com/cancerdatasci/ceres/blob/master/R/scale_to_essentials.R
-scale_to_essentials <- function(ge_fit){
+scale_to_essentials <- function(ge_fit,essgenes,nonessgenes){
   
   
-  essential_indices <- which(row.names(ge_fit) %in% ceres::hart_essentials[["Gene"]])
-  nonessential_indices <- which(row.names(ge_fit) %in% ceres::hart_nonessentials[["Gene"]])
+  essential_indices <- which(row.names(ge_fit) %in% essgenes)
+  nonessential_indices <- which(row.names(ge_fit) %in% nonessgenes)
   
   scaled_ge_fit <- ge_fit %>%
     apply(2, function(x){
@@ -3135,17 +3160,4 @@ ProportionDepletions<-function(BinaryCCR,BinaryCERES,BinaryCCRJ,output){
 AovFactors<-function(InputDF){
   AovRes<-aov(data~Batch+PreProc)
   
-}
-cohens_d <- function(x, y) {
-  lx <- length(x)- 1
-  ly <- length(y)- 1
-  
-  md  <- abs(mean(x) - mean(y))        ## mean difference (numerator)
-  csd <- lx * var(x) + ly * var(y)
-  csd <- csd/(lx + ly)
-  csd <- sqrt(csd)                     ## common sd computation
-  
-  cd  <- md/csd                        ## cohen's d
-  
-  return(cd)
 }

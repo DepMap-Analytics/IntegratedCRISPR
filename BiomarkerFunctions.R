@@ -161,14 +161,30 @@ AnovaFDRcurve<-function(AnovaResList,ResultNames=c("CCR","CERES","CCRJ"),batchle
 
 }
 
-plotBMres<-function(AnovaResList,plotcolours,fdr=0.05,preProc=c("CCR","CERES","CCRJ"),plotName=""){
+plotBMres<-function(AnovaResList,plotcolours,fdr=0.05,preProc=c("CCR","CERES","CCRJ"),plotName="",CFEtype="All"){
   batchnames<-names(AnovaResList)
 
   BMData<-NULL
   for(i in 1:length(AnovaResList)){
     for(j in 1:3){
-      temp<-data.frame(nmarkers=sum(AnovaResList[[i]][[j]]$fdr<fdr),preProc=preProc[j],batch=batchnames[i])
-      BMData<-rbind(BMData,temp)
+      if(CFEtype=="All"){
+        temp<-data.frame(nmarkers=sum(AnovaResList[[i]][[j]]$fdr<fdr),preProc=preProc[j],batch=batchnames[i])
+        BMData<-rbind(BMData,temp)
+      }
+      if(CFEtype%in%c("_mut","_HypMET")){
+        Ares<-AnovaResList[[i]][[j]]
+        Ares<-Ares[grep(CFEtype,Ares$CFE),]
+        temp<-data.frame(nmarkers=sum(Ares$fdr<fdr),preProc=preProc[j],batch=batchnames[i])
+        BMData<-rbind(BMData,temp)
+      }
+      if(CFEtype=="CNA"){
+        Ares<-AnovaResList[[i]][[j]]
+        Ares<-Ares[grep("_mut",Ares$CFE,invert=TRUE),]
+        Ares<-Ares[grep("_HypMET",Ares$CFE,invert=TRUE),]
+        Ares<-Ares[grep("MSI",Ares$CFE,invert=TRUE),]
+        temp<-data.frame(nmarkers=sum(Ares$fdr<fdr),preProc=preProc[j],batch=batchnames[i])
+        BMData<-rbind(BMData,temp)
+      }
     }
     
   }
