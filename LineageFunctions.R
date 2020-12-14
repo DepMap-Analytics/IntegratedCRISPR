@@ -76,55 +76,8 @@ plotAMI<-function(AMIlist,plotcolours,pname){
   print(AMIplot)
   dev.off()
 }
-# Parameters
-global <- list(
-  n_genes = 'all', # set to 'all' to use all protein coding genes found in both datasets 
-  umap_n_neighbors = 10, # num nearest neighbors used to create UMAP plot
-  umap_min_dist = 0.5, # min distance used to create UMAP plot
-  mnn_k_CL = 5, # number of nearest neighbors of tumors in the cell line data
-  mnn_k_tumor = 50, # number of nearest neighbors of cell lines in the tumor data
-  top_DE_genes_per = 1000, # differentially expressed genes with a rank better than this is in the cell line or tumor data
-  # are used to identify mutual nearest neighbors in the MNN alignment step
-  remove_cPCA_dims = c(1,2,3,4), # which cPCA dimensions to regress out of the data 
-  distance_metric = 'euclidean', # distance metric used for the UMAP projection
-  mod_clust_res = 5, # resolution parameter used for clustering the data
-  mnn_ndist = 3, # ndist parameter used for MNN
-  n_PC_dims = 70, # number of PCs to use for dimensionality reduction
-  reduction.use = 'umap', # 2D projection used for plotting
-  fast_cPCA = 10 # to run fast cPCA (approximate the cPCA eigenvectors instead of calculating all) set this to a value >= 4
-)
 
-create_Seurat_object <- function(exp_mat, ann, type = NULL) {
-  #exp_mat should be genes x cell lines
-  seu_obj <- Seurat::CreateSeuratObject(exp_mat,
-                                        min.cells = 0,
-                                        min.features = 0,
-                                        meta.data = ann %>%
-                                          magrittr::set_rownames(ann$sampleID))
-  if(!is.null(type)) {
-    seu_obj@meta.data$type <- type
-  }
-  # mean center the data, important for PCA
-  seu_obj <- Seurat::ScaleData(seu_obj, features = rownames(Seurat::GetAssayData(seu_obj)), do.scale = F)
-  
-  seu_obj %<>% Seurat::RunPCA(assay='RNA',
-                              features = rownames(Seurat::GetAssayData(seu_obj)),
-                              npcs = global$n_PC_dims, verbose = F)
-  
-  seu_obj %<>% Seurat::RunUMAP(assay = 'RNA', dims = 1:global$n_PC_dims,
-                               reduction = 'pca',
-                               n.neighbors = global$umap_n_neighbors,
-                               min.dist =  global$umap_min_dist,
-                               metric = global$distance_metric, verbose=F)
-  umapcoords<-FetchData(seu_obj,vars=c("UMAP_1","UMAP_2"))
-  return(umapcoords)
-}
-LineageUMAP<-function(){
-  CIoutput<-tCI[,TCGAbreast$sampleID]
-  #assume have data want to use in CIoutput
-  umapData<-create_Seurat_object(CIoutput,CIannot[CIannot$sampleID%in%TCGAbreast$sampleID,])
-  
-}
+
 
 
 classPerfLineage<-function(dataset,qualityTH=Inf,QC=NULL,weights=NULL,geneset=NULL,distmetric="Cor",lineagelabel,withRange=1){
@@ -182,45 +135,3 @@ getLRTgenes<-function(normLRTlist,thresh=200){
   glist<-lapply(normLRTlist,function(x) names(x[[3]])[x[[3]]>thresh])
   return(unique(unlist(glist)))
 }
-global <- list(
-  n_genes = 'all', # set to 'all' to use all protein coding genes found in both datasets 
-  umap_n_neighbors = 10, # num nearest neighbors used to create UMAP plot
-  umap_min_dist = 0.5, # min distance used to create UMAP plot
-  mnn_k_CL = 5, # number of nearest neighbors of tumors in the cell line data
-  mnn_k_tumor = 50, # number of nearest neighbors of cell lines in the tumor data
-  top_DE_genes_per = 1000, # differentially expressed genes with a rank better than this is in the cell line or tumor data
-  # are used to identify mutual nearest neighbors in the MNN alignment step
-  remove_cPCA_dims = c(1,2,3,4), # which cPCA dimensions to regress out of the data 
-  distance_metric = 'euclidean', # distance metric used for the UMAP projection
-  mod_clust_res = 5, # resolution parameter used for clustering the data
-  mnn_ndist = 3, # ndist parameter used for MNN
-  n_PC_dims = 50, # number of PCs to use for dimensionality reduction
-  reduction.use = 'umap', # 2D projection used for plotting
-  fast_cPCA = 20 # to run fast cPCA (approximate the cPCA eigenvectors instead of calculating all) set this to a value >= 4
-)
-create_Seurat_object <- function(exp_mat, ann, type = NULL) {
-  #exp_mat should be genes x cell lines
-  seu_obj <- Seurat::CreateSeuratObject(exp_mat,
-                                        min.cells = 0,
-                                        min.features = 0,
-                                        meta.data = ann %>%
-                                          magrittr::set_rownames(ann$model_id))
-  if(!is.null(type)) {
-    seu_obj@meta.data$type <- type
-  }
-  # mean center the data, important for PCA
-  seu_obj <- Seurat::ScaleData(seu_obj, features = rownames(Seurat::GetAssayData(seu_obj)), do.scale = F)
-  
-  seu_obj %<>% Seurat::RunPCA(assay='RNA',
-                              features = rownames(Seurat::GetAssayData(seu_obj)),
-                              npcs = global$n_PC_dims, verbose = F)
-  
-  seu_obj %<>% Seurat::RunUMAP(assay = 'RNA', dims = 1:global$n_PC_dims,
-                               reduction = 'pca',
-                               n.neighbors = global$umap_n_neighbors,
-                               min.dist =  global$umap_min_dist,
-                               metric = global$distance_metric, verbose=F)
-  umapcoords<-FetchData(seu_obj,vars=c("UMAP_1","UMAP_2"))
-  return(umapcoords)
-}
-
