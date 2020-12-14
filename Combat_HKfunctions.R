@@ -490,37 +490,7 @@ nnmd<-function(FCs,essential,nonessential){
   denom<-apply(FCs,2,function(x) sd(x[noness]))
   unlist(numerators)/unlist(denom)
 }
-ssmd <- function (a, b, verbose=TRUE,...) 
-{
-  if (length(a) < 2 | length(b) < 2) {
-    stop(call. = FALSE, "Inputs need to be greater at least 2 elements long")
-  }
-  if (is.numeric(a) == FALSE | is.numeric(b) == FALSE) {
-    stop(call. = FALSE, "Input needs to be numeric.")
-  }
-  
-  mu_a <- mean(a, ...)
-  mu_b <- mean(b, ...)
-  var_a <- var(a, ...)
-  var_b <- var(b, ...)
-  
-  # if lengths are equal assume correlation and calculate covariance
-  if (length(a) == length(b)) {
-    cov_ab <- cov(a, b)
-    beta <- (mu_a - mu_b)/sqrt(var_a + var_b - 2 * cov_ab)
-  } else{ # unequal lengths => not paired , cannot calc covariance
-    beta <- (mu_a - mu_b) / sqrt(var_a + var_b)
-    if(verbose == TRUE)
-    {
-      warning("a and b have different lengths. Calculations assumed no correlation.",
-              call. = FALSE)
-    }
-  }
-  
 
-  
-  return(beta)
-}
 
 CL_qualitySSMD<-function(FCmatrix,ess,noness){
   out<-vector("numeric",length=ncol(FCmatrix))
