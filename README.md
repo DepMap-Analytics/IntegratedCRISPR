@@ -19,6 +19,8 @@ The code should be executed in the following order:
 To run the code, source data files should be downloaded from the Figshare repository: 
 The location of the Figshare directory should be added to the R scripts as indicated (dir.Input variable). Note the DownSamplingBatchCorrection script is set to run in parallel over 24 cores. This script is computationally expensive.
 
+All python scripts are contained in IntegrationAnalysis.ipynb. This file requires jupyter notebook to open.
+
 The packages required to run the R scripts are:
 * here
 * preprocessCore
