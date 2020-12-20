@@ -17,9 +17,10 @@ The code should be executed in the following order:
 * DownSamplingFigures.R
 
 To run the code, source data files should be downloaded from the Figshare repository: 
+https://figshare.com/projects/Integrated_CRISPR/78252
 The location of the Figshare directory should be added to the R scripts as indicated (dir.Input variable). Note the DownSamplingBatchCorrection script is set to run in parallel over 24 cores. This script is computationally expensive.
 
-All python scripts are contained in IntegrationAnalysis.ipynb. This file requires jupyter notebook to open.
+All python scripts are contained in IntegrationAnalysis.ipynb. This file requires jupyter notebook to open. All the data inputs required to run the Jupiter notebook are in the Figshare (https://figshare.com/projects/Integrated_CRISPR/78252) subdirectory NotebookInput.
 
 The packages required to run the R scripts are:
 * here
