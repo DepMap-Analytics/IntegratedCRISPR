@@ -1,5 +1,5 @@
 # IntegratedCRISPR
-Code for integration and evaluation of Broad and Sanger Institutes CRISPR-Cas9 screens 
+Code for integration and evaluation of Broad and Sanger Institutes CRISPR-Cas9 screens. These scripts are to reproduce the analysis in the paper. For the integrations functions alone there is an R package available here: https://github.com/DepMap-Analytics/IntCRISPR
 
 
 The code should be executed in the following order:
